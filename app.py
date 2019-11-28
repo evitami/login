@@ -1,71 +1,55 @@
-from flask import Flask
-from flask import request
-from flask import render_template
-import sqlite3 as my
+from flask import Flask, request, render_template
+import sqlite3
+from flask import g
 
 app = Flask(__name__)
 
+DATABASE = './users.db'
+
+def get_db():
+    db = getattr(g, '_database', None)
+    if db is None:
+        db = g._database = sqlite3.connect(DATABASE)
+    return db
+
+
+@app.teardown_appcontext
+def close_connection(exception):
+    db = getattr(g, '_database', None)
+    if db is not None:
+        db.close()
+
+
+def query_db(query, args=(), one=False):
+    cur = get_db().execute(query, args)
+    rv = cur.fetchall()
+    cur.close()
+    return (rv[0] if rv else None) if one else rv
+
+
+def valid_login(username, password):
+    user = query_db('select * from User where username = ? and password = ?', [username, password], one=True)
+    if user is None:
+        return False
+    else:
+        return True
+
+def log_the_user_in():
+    return render_template('secret.html')
+
 @app.route("/")
-def index():
-    return render_template("index.html")
 
-@app.route("/add/")
-def add():
-    return render_template("add.html")
+@app.route('/login', methods=['POST', 'GET'])
+def login():
+    error = None
+    if request.method == 'POST':
+        if valid_login(request.form['username'], request.form['password']):
+            return log_the_user_in()
+        else:
+            error = 'Invalid username/password'
 
-@app.route("/savedetails", methods=["POST", "GET"])
-def saveDetails():
-    msg = "msg"
-    if request.method == "POST":
-        try:
-            name = request.form["name"]
-            password = request.form["password"]
-            with my.connect("employee.db") as con:
-                cur = con.cursor()
-                cur.execute("INSERT into Employees ( name, password) values (?,?)", (name, password))
-                con.commit()
-                msg = "Employee successfully Added"
-        except my.Error as a:
-             con.rollback()
-             msg = "We can not add the employee to the list"
-        finally:
-            return render_template("success.html", msg=msg)
-            con.close();
-
-
-@app.route("/view/")
-def view():
-    con = my.connect("employee.db")
-    con.row_factory = my.Row
-    cur = con.cursor()
-    cur.execute("select * from Employees")
-    rows = cur.fetchall()
-    return render_template("view.html", rows=rows)
-
-@app.route("/select/", methods=["GET"])
-def find():
-    con = my.connect("employee.db")
-    con.row_factory = my.Row
-    cur.execute("select")
-
-@app.route("/delete/")
-def delete():
-    return render_template("delete.html")
-
-
-@app.route("/deleterecord", methods=["POST"])
-def deleterecord():
-    id = request.form["id"]
-    with sqlite3.connect("employee.db") as con:
-        try:
-            cur = con.cursor()
-            cur.execute("delete from Employees where id = ?", id)
-            msg = "record successfully deleted"
-        except:
-            msg = "can't be deleted"
-        finally:
-            return render_template("delete_record.html", msg=msg)
+    return render_template('login.html', error=error)
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
