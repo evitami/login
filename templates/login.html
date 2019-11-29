@@ -17,13 +17,18 @@
         }
         }
         </script>
-
     </head>
     <body>
         <div>
-                <form name="login-form"  action="/login" onsubmit="return validateForm()" target="_self" method="POST"  >
+                <form name="login-form" action="/login" onsubmit="return validateForm()" method="POST" >
                     <h2>GROWIE</h2>
                     <h3>Log in:</h3>
+                    {% if error %}
+                       <p>{{ error }}</p>
+                    {% endif %}
+                    {% if msg %}
+                        <p>{{ msg }}</p>
+                    {% endif %}
                     <input type ="text" name ="username" placeholder="Username"><br>
                     <input type="password" name="password" placeholder="Password"><br>
                     <input type="submit" value="Log in"><br>
