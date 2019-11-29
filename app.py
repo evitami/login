@@ -1,10 +1,12 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, session
 import sqlite3
 from flask import g
+from os import urandom
 
 app = Flask(__name__)
 
 DATABASE = './users.db'
+app.secret_key = urandom(24)
 
 @app.route("/")
 def index():
@@ -75,6 +77,10 @@ def signup():
             sqliteConnection.close()
 
     return render_template('signup.html')
+
+@app.route('/logout')
+def logout():
+    return render_template('index.html')
 
 if __name__ == "__main__":
     app.run()
