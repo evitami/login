@@ -1,16 +1,19 @@
-from flask import Flask, request, render_template, session
+from flask import Flask, request, render_template, session, redirect, url_for
 import sqlite3
 from flask import g
-from os import urandom
 
 app = Flask(__name__)
 
 DATABASE = './users.db'
-app.secret_key = urandom(24)
+app.secret_key = b"{'\x16\xccj6\xcay\xc5k\xb6\xe0\xfe\xd8\xd2\xe0I\xeb~\xe35\xa0&\xee"
+
 
 @app.route("/")
 def index():
-    return render_template('index.html')
+    if 'username' in session:
+        return render_template('profil.html', username=session['username'])
+    else:
+        return render_template('index.html')
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -48,6 +51,7 @@ def login():
     error = None
     if request.method == 'POST':
         if valid_login(request.form['username'], request.form['password']):
+            session['username'] = request.form['username']
             return log_the_user_in(request.form['username'])
         else:
             error = 'Invalid username or password'
@@ -78,8 +82,9 @@ def signup():
 
     return render_template('signup.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=["POST"])
 def logout():
+    session.pop('username')
     return render_template('index.html')
 
 if __name__ == "__main__":
